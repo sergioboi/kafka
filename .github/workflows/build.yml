@@ -15,9 +15,9 @@
 
 name: Check and Test
 
-# This workflow should only be called from ci.yml which is triggered on
-# the "pull_request" event type. We should never dispatch this workflow from
-# a "pull_request_target" event.
+# This workflow is called from ci.yml for normal PR/trunk builds and may also
+# be invoked by trusted automation for branch maintenance tasks. We should
+# never dispatch this workflow from a "pull_request_target" event.
 on:
   workflow_call:
     inputs:
@@ -28,6 +28,18 @@ on:
       is-public-fork:
         description: "Is this CI run from a public fork?"
         default: true
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      is-trunk:
+        description: "Is this a trunk build?"
+        default: false
+        required: false
+        type: boolean
+      is-public-fork:
+        description: "Is this CI run from a public fork?"
+        default: false
+        required: false
         type: boolean
 
 jobs:
@@ -69,6 +81,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
+          ref: ${{ needs.configure.outputs.sha }}
 
       - name: Checkout test-catalog
         uses: actions/checkout@v5
@@ -112,6 +125,10 @@ jobs:
     needs: [configure]
     runs-on: ubuntu-latest
     name: Compile and Check (Merge Ref)
+    env:
+      KAFKA_GRADLE_REMOTE_CACHE_URL: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_URL }}
+      KAFKA_GRADLE_REMOTE_CACHE_USER: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_USER }}
+      KAFKA_GRADLE_REMOTE_CACHE_TOKEN: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_TOKEN }}
     steps:
       - name: Env
         run: printenv
@@ -121,7 +138,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-          ref: ${{ github.sha }}  # this is the default, just being explicit.
+          ref: ${{ needs.configure.outputs.sha }}
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Check Python dependency conflicts
@@ -192,6 +209,9 @@ jobs:
             run-new: true
     env:
       job-variation: ${{ matrix.java }}-${{ matrix.run-flaky == true && 'flaky' || 'noflaky' }}-${{ matrix.run-new == true && 'new' || 'nonew' }}
+      KAFKA_GRADLE_REMOTE_CACHE_URL: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_URL }}
+      KAFKA_GRADLE_REMOTE_CACHE_USER: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_USER }}
+      KAFKA_GRADLE_REMOTE_CACHE_TOKEN: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_TOKEN }}
     name: JUnit tests Java ${{ matrix.java }}${{ matrix.run-flaky == true && ' (flaky)' || '' }}${{ matrix.run-new == true && ' (new)' || '' }}
     steps:
       - name: Checkout code
@@ -288,6 +308,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
+          ref: ${{ needs.configure.outputs.sha }}
       - name: Download Thread Dumps
         uses: actions/download-artifact@v5
         with:
@@ -355,7 +376,7 @@ jobs:
           COMMIT_MSG: |
             Update test catalog data for GHA workflow run ${{ github.run_id }}
             
-            Commit: https://github.com/apache/kafka/commit/${{ github.sha }}
+            Commit: https://github.com/apache/kafka/commit/${{ needs.configure.outputs.sha }}
             GitHub Run: https://github.com/apache/kafka/actions/runs/${{ github.run_id }}
         run: |
           pwd

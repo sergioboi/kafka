@@ -83,6 +83,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           gh workflow run build.yml \
+            -- repo "$GITHUB_REPOSITORY"
             --ref "$TARGET_BRANCH" \
             -f is-trunk=false \
             -f is-public-fork=true

@@ -30,6 +30,11 @@ on:
         default: true
         type: boolean
 
+env:
+  KAFKA_GRADLE_REMOTE_CACHE_URL: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_URL }}
+  KAFKA_GRADLE_REMOTE_CACHE_USER: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_USER }}
+  KAFKA_GRADLE_REMOTE_CACHE_TOKEN: ${{ secrets.KAFKA_GRADLE_REMOTE_CACHE_TOKEN }}
+
 jobs:
   configure:
     runs-on: ubuntu-latest
